@@ -1,0 +1,202 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+:root {
+  --ink: #16232a;
+  --muted: #5b6b72;
+  --bg: #f7f9fa;
+  --card: #ffffff;
+  --border: #e3e8e8;
+  --primary: #0f6b66;
+  --primary-dark: #0b4f4b;
+  --primary-tint: #e4f2f1;
+  --coral: #e85d4e;
+  --coral-tint: #fdeae7;
+  --amber: #c98a1f;
+  --amber-tint: #fbf1de;
+
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+h1, h2, h3 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  margin: 0 0 8px;
+}
+
+a { color: var(--primary); }
+
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+}
+
+.sidebar {
+  width: 220px;
+  background: var(--primary-dark);
+  color: #eaf5f4;
+  padding: 24px 16px;
+  flex-shrink: 0;
+}
+
+.sidebar .brand {
+  font-family: var(--font-display);
+  font-size: 20px;
+  margin-bottom: 28px;
+  letter-spacing: 0.02em;
+}
+
+.sidebar nav a {
+  display: block;
+  color: #cfe6e4;
+  text-decoration: none;
+  padding: 9px 10px;
+  border-radius: 6px;
+  margin-bottom: 2px;
+  font-size: 14px;
+}
+
+.sidebar nav a.active, .sidebar nav a:hover {
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+}
+
+.sidebar .signout {
+  margin-top: 24px;
+  background: none;
+  border: 1px solid rgba(255,255,255,0.25);
+  color: #eaf5f4;
+  padding: 7px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.main {
+  flex: 1;
+  padding: 32px 40px;
+  max-width: 980px;
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 20px 22px;
+  margin-bottom: 16px;
+}
+
+.grid { display: grid; gap: 16px; }
+.grid-2 { grid-template-columns: 1fr 1fr; }
+
+label { display: block; font-size: 13px; color: var(--muted); margin: 12px 0 4px; }
+
+input, select, textarea {
+  width: 100%;
+  padding: 9px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  background: #fff;
+  color: var(--ink);
+}
+
+textarea { min-height: 90px; resize: vertical; }
+
+button.btn {
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  margin-top: 14px;
+}
+
+button.btn:hover { background: var(--primary-dark); }
+button.btn.secondary { background: transparent; color: var(--primary); border: 1px solid var(--primary); }
+button.btn.danger { background: var(--coral); }
+button.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.error { color: var(--coral); font-size: 13px; margin-top: 8px; }
+
+.badge {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+.badge.low { background: var(--primary-tint); color: var(--primary-dark); }
+.badge.medium { background: var(--amber-tint); color: var(--amber); }
+.badge.high { background: var(--coral-tint); color: var(--coral); }
+.badge.status { background: #eef1f1; color: var(--muted); }
+
+.slot-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.slot-btn {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.slot-btn:hover { border-color: var(--primary); color: var(--primary); }
+.slot-btn.selected { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+.appt-row {
+  border-left: 3px solid var(--primary);
+  padding: 10px 14px;
+  background: var(--card);
+  border-radius: 0 8px 8px 0;
+  margin-bottom: 10px;
+  border-top: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.appt-row.cancelled { border-left-color: var(--muted); opacity: 0.6; }
+.appt-row.leave { border-left-color: var(--coral); }
+
+.auth-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--primary-dark);
+}
+
+.auth-card {
+  width: 380px;
+  background: #fff;
+  border-radius: 12px;
+  padding: 32px;
+}
+
+.muted { color: var(--muted); font-size: 13px; }

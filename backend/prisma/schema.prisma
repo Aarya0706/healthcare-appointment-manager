@@ -1,0 +1,199 @@
+// Healthcare Appointment & Follow-up Manager — DB Schema
+// Postgres, managed with Prisma migrations.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  PATIENT
+  DOCTOR
+  ADMIN
+}
+
+enum AppointmentStatus {
+  HELD // temporary slot hold while patient fills symptom form / confirms
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  DOCTOR_LEAVE // cancelled because doctor went on leave
+}
+
+enum Urgency {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum NotificationType {
+  BOOKING_CONFIRMATION
+  APPOINTMENT_REMINDER
+  CANCELLATION
+  LEAVE_NOTICE
+  MEDICATION_REMINDER
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  role         Role
+  name         String
+  phone        String?
+  createdAt    DateTime @default(now())
+
+  // Google OAuth tokens for calendar sync (stored per user, refresh token encrypted at rest in real deployment)
+  googleRefreshToken String?
+  googleAccessToken  String?
+  googleTokenExpiry  DateTime?
+
+  doctorProfile       DoctorProfile?
+  patientAppointments Appointment[]  @relation("PatientAppointments")
+  notifications       Notification[]
+}
+
+model DoctorProfile {
+  id              String  @id @default(uuid())
+  userId          String  @unique
+  user            User    @relation(fields: [userId], references: [id])
+  specialisation  String
+  slotDurationMin Int     @default(30)
+  bio             String?
+
+  workingHours WorkingHours[]
+  leaves       DoctorLeave[]
+  appointments Appointment[]  @relation("DoctorAppointments")
+
+  @@index([specialisation])
+}
+
+// Recurring weekly availability, e.g. Mon-Fri 09:00-17:00
+model WorkingHours {
+  id        String        @id @default(uuid())
+  doctorId  String
+  doctor    DoctorProfile @relation(fields: [doctorId], references: [id])
+  dayOfWeek Int // 0 = Sunday .. 6 = Saturday
+  startTime String // "09:00" (24h, local clinic tz)
+  endTime   String // "17:00"
+
+  @@index([doctorId, dayOfWeek])
+}
+
+model DoctorLeave {
+  id        String        @id @default(uuid())
+  doctorId  String
+  doctor    DoctorProfile @relation(fields: [doctorId], references: [id])
+  date      DateTime      @db.Date
+  reason    String?
+  createdAt DateTime      @default(now())
+
+  @@unique([doctorId, date]) // one leave record per doctor per day
+}
+
+// The core booking. A unique constraint on (doctorId, startTime) is the
+// last line of defense against double-booking; application logic also
+// uses a DB transaction + row lock when creating HELD/CONFIRMED rows.
+// See SYSTEM_DESIGN.md for the full concurrency strategy.
+model Appointment {
+  id        String        @id @default(uuid())
+  patientId String
+  patient   User          @relation("PatientAppointments", fields: [patientId], references: [id])
+  doctorId  String
+  doctor    DoctorProfile @relation("DoctorAppointments", fields: [doctorId], references: [id])
+
+  startTime     DateTime
+  endTime       DateTime
+  status        AppointmentStatus @default(HELD)
+  holdExpiresAt DateTime? // HELD rows auto-expire if not confirmed within N minutes
+
+  googleEventIdPatient String?
+  googleEventIdDoctor  String?
+
+  symptomForm   SymptomForm?
+  postVisitNote PostVisitNote?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Prevents two CONFIRMED/HELD rows from ever occupying the same doctor+slot.
+  @@unique([doctorId, startTime])
+  @@index([patientId])
+  @@index([doctorId, startTime])
+}
+
+model SymptomForm {
+  id            String      @id @default(uuid())
+  appointmentId String      @unique
+  appointment   Appointment @relation(fields: [appointmentId], references: [id])
+  rawSymptoms   String
+  durationDays  Int?
+  submittedAt   DateTime    @default(now())
+
+  // LLM output (pre-visit summary)
+  urgency            Urgency?
+  chiefComplaint     String?
+  suggestedQuestions Json? // string[]
+  llmStatus          String   @default("PENDING") // PENDING | OK | FAILED
+  llmRawResponse     String?
+  llmError           String?
+}
+
+model PostVisitNote {
+  id            String      @id @default(uuid())
+  appointmentId String      @unique
+  appointment   Appointment @relation(fields: [appointmentId], references: [id])
+  clinicalNotes String
+  prescription  Json // [{ medicine, dosage, frequencyPerDay, durationDays }]
+  followUpDate  DateTime?
+  submittedAt   DateTime    @default(now())
+
+  // LLM output (patient-friendly summary)
+  patientSummary String?
+  llmStatus      String  @default("PENDING")
+  llmRawResponse String?
+  llmError       String?
+
+  medicationReminders MedicationReminder[]
+}
+
+model MedicationReminder {
+  id              String        @id @default(uuid())
+  postVisitNoteId String
+  postVisitNote   PostVisitNote @relation(fields: [postVisitNoteId], references: [id])
+  medicine        String
+  scheduledFor    DateTime
+  sent            Boolean       @default(false)
+  sentAt          DateTime?
+
+  @@index([scheduledFor, sent])
+}
+
+// Outbox pattern for all outbound email + calendar side effects, so a
+// send failure never blocks the main transaction and can be retried by
+// the background job instead of being silently lost.
+model Notification {
+  id        String             @id @default(uuid())
+  userId    String
+  user      User               @relation(fields: [userId], references: [id])
+  type      NotificationType
+  channel   String             @default("EMAIL") // EMAIL | CALENDAR
+  payload   Json
+  status    NotificationStatus @default(PENDING)
+  attempts  Int                @default(0)
+  lastError String?
+  createdAt DateTime           @default(now())
+  sentAt    DateTime?
+
+  @@index([status, attempts])
+}

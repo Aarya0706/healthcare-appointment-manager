@@ -1,0 +1,292 @@
+{
+  "info": {
+    "name": "Healthcare Appointment Manager",
+    "description": "Full API for the clinic appointment platform. Set {{baseUrl}} and run requests in order for a full demo flow: login as admin -> create doctor -> login as patient -> hold slot -> submit symptoms -> confirm -> login as doctor -> submit visit note.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:4000/api" },
+    { "key": "adminToken", "value": "" },
+    { "key": "patientToken", "value": "" },
+    { "key": "doctorToken", "value": "" },
+    { "key": "doctorProfileId", "value": "" },
+    { "key": "appointmentId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register patient",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/auth/register",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Demo Patient\",\n  \"email\": \"demo.patient@clinic.dev\",\n  \"password\": \"Demo1234!\",\n  \"phone\": \"+91-9000000000\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Login as admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set('adminToken', data.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/auth/login",
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"admin@clinic.dev\",\n  \"password\": \"ChangeMe123!\"\n}" }
+          }
+        },
+        {
+          "name": "Login as patient",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set('patientToken', data.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/auth/login",
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"demo.patient@clinic.dev\",\n  \"password\": \"Demo1234!\"\n}" }
+          }
+        },
+        {
+          "name": "Login as doctor",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set('doctorToken', data.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/auth/login",
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"priya.nair@clinic.dev\",\n  \"password\": \"Demo1234!\"\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "item": [
+        {
+          "name": "Create doctor",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "url": "{{baseUrl}}/admin/doctors",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Priya Nair\",\n  \"email\": \"priya.nair@clinic.dev\",\n  \"password\": \"Demo1234!\",\n  \"specialisation\": \"General Medicine\",\n  \"slotDurationMin\": 20,\n  \"workingHours\": [\n    { \"dayOfWeek\": 1, \"startTime\": \"09:00\", \"endTime\": \"13:00\" },\n    { \"dayOfWeek\": 3, \"startTime\": \"09:00\", \"endTime\": \"13:00\" }\n  ]\n}"
+            }
+          }
+        },
+        {
+          "name": "List doctors",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const data = pm.response.json();",
+                  "if (data[0]) pm.collectionVariables.set('doctorProfileId', data[0].id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{baseUrl}}/admin/doctors"
+          }
+        },
+        {
+          "name": "Mark doctor on leave",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "url": "{{baseUrl}}/admin/doctors/{{doctorProfileId}}/leave",
+            "body": { "mode": "raw", "raw": "{\n  \"date\": \"2026-09-10\",\n  \"reason\": \"Personal leave\"\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Doctors (patient-facing)",
+      "item": [
+        {
+          "name": "Search doctors",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{patientToken}}" }],
+            "url": "{{baseUrl}}/doctors?specialisation=General"
+          }
+        },
+        {
+          "name": "Get availability",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{patientToken}}" }],
+            "url": "{{baseUrl}}/doctors/{{doctorProfileId}}/availability?date=2026-09-01"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Appointments",
+      "item": [
+        {
+          "name": "Hold a slot",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const data = pm.response.json();",
+                  "if (data.id) pm.collectionVariables.set('appointmentId', data.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{patientToken}}" }
+            ],
+            "url": "{{baseUrl}}/appointments/hold",
+            "body": { "mode": "raw", "raw": "{\n  \"doctorId\": \"{{doctorProfileId}}\",\n  \"startTime\": \"2026-09-01T09:00:00.000Z\"\n}" }
+          }
+        },
+        {
+          "name": "Confirm appointment",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{patientToken}}" }],
+            "url": "{{baseUrl}}/appointments/{{appointmentId}}/confirm"
+          }
+        },
+        {
+          "name": "List my appointments",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{patientToken}}" }],
+            "url": "{{baseUrl}}/appointments"
+          }
+        },
+        {
+          "name": "Cancel appointment",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{patientToken}}" }
+            ],
+            "url": "{{baseUrl}}/appointments/{{appointmentId}}/cancel",
+            "body": { "mode": "raw", "raw": "{\n  \"reason\": \"Schedule conflict\"\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Symptoms (pre-visit)",
+      "item": [
+        {
+          "name": "Submit symptoms",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{patientToken}}" }
+            ],
+            "url": "{{baseUrl}}/symptoms/{{appointmentId}}",
+            "body": { "mode": "raw", "raw": "{\n  \"symptoms\": \"Fever for 3 days, sore throat, mild headache\",\n  \"durationDays\": 3\n}" }
+          }
+        },
+        {
+          "name": "Get symptom form",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{doctorToken}}" }],
+            "url": "{{baseUrl}}/symptoms/{{appointmentId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Visits (post-visit)",
+      "item": [
+        {
+          "name": "Submit visit note",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{doctorToken}}" }
+            ],
+            "url": "{{baseUrl}}/visits/{{appointmentId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"clinicalNotes\": \"Viral pharyngitis. Advised rest and fluids.\",\n  \"prescription\": [\n    { \"medicine\": \"Paracetamol\", \"dosage\": \"500mg\", \"frequencyPerDay\": 3, \"durationDays\": 3 }\n  ],\n  \"followUpDate\": \"2026-09-08\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get visit note",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{patientToken}}" }],
+            "url": "{{baseUrl}}/visits/{{appointmentId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Calendar",
+      "item": [
+        {
+          "name": "Get Google consent URL",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{patientToken}}" }],
+            "url": "{{baseUrl}}/calendar/connect"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Health check",
+      "request": { "method": "GET", "url": "{{baseUrl}}/health" }
+    }
+  ]
+}
