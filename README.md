@@ -1,178 +1,624 @@
 # Healthcare Appointment & Follow-up Manager
 
-A clinic platform with separate portals for **patients**, **doctors**, and an **admin**.
-Patients book appointments and describe symptoms in advance; an LLM produces a pre-visit
-summary with urgency level for the doctor; the doctor logs notes and a prescription after
-the visit and an LLM turns that into a patient-friendly summary; both sides get email
-confirmations and Google Calendar events; patients get medication reminders.
+A clinic platform with separate portals for **patients**, **doctors**, and **admins**.
 
-## Stack
+Patients can book appointments and submit symptoms in advance. Google Gemini generates a pre-visit summary with an urgency level for the doctor. After the visit, doctors submit clinical notes and prescriptions, and Gemini generates a patient-friendly summary. The system also supports email notifications, Google Calendar integration, medication reminders, doctor leave handling, and safe concurrent booking.
 
-- **Backend:** Node.js + Express, PostgreSQL via Prisma ORM, JWT auth, `node-cron` background jobs
-- **Frontend:** React (Vite), React Router
-- **LLM:** Google Gemini (`gemini-2.5-flash`) — free tier, no card required
-- **Email:** Nodemailer (SMTP / SendGrid / Mailgun — pick one)
-- **Calendar:** Google Calendar API via OAuth 2.0
+## 🌐 Live Demo
 
-## Project structure
+**Frontend:**  
+https://healthcare-appointment-manager-sandy.vercel.app
 
-```
-backend/
-  prisma/schema.prisma   # DB schema (see below)
-  prisma/seed.js         # creates an initial admin user
-  src/
-    routes/               auth, admin, doctors, appointments, symptoms, visits, calendarAuth
-    utils/                llm.js, email.js, calendar.js, notify.js (notification outbox)
-    jobs/                 medication reminders + email retry (cron)
-    middleware/auth.js    JWT auth + role guard
-frontend/
-  src/
-    pages/patient/         booking flow, appointment list
-    pages/doctor/           schedule, pre-visit summary, post-visit note form
-    pages/admin/            doctor management, leave
-README.md
-SYSTEM_DESIGN.md
+**Backend:**  
+https://healthcare-appointment-manager-olad.onrender.com
+
+**Backend Health Check:**  
+https://healthcare-appointment-manager-olad.onrender.com/api/health
+
+Expected response:
+
+```json
+{"ok":true}
 ```
 
-## Setup
+**GitHub Repository:**  
+https://github.com/Aarya0706/healthcare-appointment-manager
+
+---
+
+## 🔐 Demo Login
+
+### Admin
+
+```text
+Email: admin@clinic.dev
+Password: ChangeMe123!
+```
+
+### Doctor
+
+```text
+Email: testdoctor@clinic.dev
+Password: TestDoctor123
+```
+
+### Patient
+
+Patients can create an account from the **Create an account** page.
+
+> These credentials are for demonstration/testing only.
+
+---
+
+## ✨ Features
+
+### Patient Portal
+
+- Patient registration and login
+- Search doctors by specialisation
+- View doctor availability
+- Hold an appointment slot temporarily
+- Submit symptoms before confirmation
+- Receive an AI-generated pre-visit summary
+- Confirm and cancel appointments
+- View appointment history
+- View completed visit summaries
+- View medication information
+- Connect Google Calendar
+
+### Doctor Portal
+
+- Doctor login
+- View scheduled appointments
+- View patient symptoms
+- View AI-generated pre-visit summary
+- See urgency level and suggested questions
+- Submit clinical notes
+- Add prescriptions
+- Generate a patient-friendly post-visit summary
+- Connect Google Calendar
+
+### Admin Portal
+
+- Admin login
+- Create doctor profiles
+- Configure doctor specialisation
+- Configure slot duration
+- Configure recurring working hours
+- Mark doctors on leave
+- Automatically handle affected appointments
+
+### AI Features
+
+- Pre-visit symptom analysis
+- Urgency classification: Low / Medium / High
+- Chief complaint extraction
+- Three suggested doctor questions
+- Post-visit patient-friendly summary
+- Medication schedule summary
+- Follow-up guidance
+- Graceful LLM failure handling
+
+### Booking & Reliability
+
+- Temporary slot holds
+- Hold expiration
+- Double-booking prevention
+- Database unique constraint on doctor + start time
+- Doctor leave conflict handling
+- Transactional notification outbox
+- Background email retry handling
+
+### Notifications & Reminders
+
+- Booking confirmation notifications
+- Cancellation notifications
+- Leave notifications
+- Medication reminders
+- Background reminder job
+- Background email retry job
+
+### Google Calendar
+
+- OAuth 2.0 connection
+- Per-user Google Calendar authorization
+- Calendar event creation for confirmed appointments
+- Calendar event deletion on cancellation
+- Best-effort calendar synchronization
+
+---
+
+## 🛠️ Tech Stack
+
+- **Frontend:** React + Vite + React Router
+- **Backend:** Node.js + Express
+- **Database:** PostgreSQL + Prisma ORM
+- **Authentication:** JWT + role-based access control
+- **LLM:** Google Gemini via `@google/genai`
+- **Background Jobs:** `node-cron`
+- **Email:** Nodemailer / SMTP
+- **Calendar:** Google Calendar API + OAuth 2.0
+- **Frontend Hosting:** Vercel
+- **Backend Hosting:** Render
+- **Database Hosting:** Neon PostgreSQL
+
+---
+
+## 📁 Project Structure
+
+```text
+healthcare-appointment-manager/
+│
+├── backend/
+│   ├── prisma/
+│   │   ├── schema.prisma
+│   │   ├── seed.js
+│   │   └── demo-seed.js
+│   │
+│   ├── src/
+│   │   ├── routes/
+│   │   │   ├── auth.js
+│   │   │   ├── admin.js
+│   │   │   ├── doctors.js
+│   │   │   ├── appointments.js
+│   │   │   ├── symptoms.js
+│   │   │   ├── visits.js
+│   │   │   └── calendarAuth.js
+│   │   │
+│   │   ├── utils/
+│   │   │   ├── llm.js
+│   │   │   ├── email.js
+│   │   │   ├── calendar.js
+│   │   │   └── notify.js
+│   │   │
+│   │   ├── jobs/
+│   │   │   └── background jobs
+│   │   │
+│   │   └── middleware/
+│   │       └── auth.js
+│   │
+│   ├── package.json
+│   └── .env.example
+│
+├── frontend/
+│   ├── src/
+│   │   ├── pages/
+│   │   │   ├── patient/
+│   │   │   ├── doctor/
+│   │   │   └── admin/
+│   │   ├── components/
+│   │   └── api.js
+│   ├── package.json
+│   └── .env.example
+│
+├── README.md
+├── SYSTEM_DESIGN.md
+└── postman_collection.json
+```
+
+---
+
+## ⚙️ Local Setup
 
 ### 1. Database
 
+Any PostgreSQL database can be used.
+
+Create a database if needed:
+
 ```bash
-# any Postgres works — local, or a free instance on Render/Neon/Supabase
 createdb ham
+```
+
+Set the connection string in `backend/.env`:
+
+```env
+DATABASE_URL=your_postgresql_connection_string
 ```
 
 ### 2. Backend
 
 ```bash
 cd backend
-cp .env.example .env      # fill in DATABASE_URL, JWT_SECRET, GEMINI_API_KEY, SMTP_*, GOOGLE_*
 npm install
-npx prisma migrate dev --name init
-npm run seed               # creates admin@clinic.dev / ChangeMe123!
-npm run dev                 # http://localhost:4000
+```
+
+Create `.env` from `.env.example` and configure the required values:
+
+```env
+DATABASE_URL=...
+JWT_SECRET=...
+JWT_EXPIRES_IN=7d
+
+GEMINI_API_KEY=...
+GEMINI_MODEL=gemini-3.6-flash
+
+EMAIL_PROVIDER=...
+EMAIL_FROM=...
+
+SMTP_HOST=...
+SMTP_PORT=587
+SMTP_USER=...
+SMTP_PASS=...
+
+GOOGLE_CLIENT_ID=...
+GOOGLE_CLIENT_SECRET=...
+GOOGLE_REDIRECT_URI=...
+
+SLOT_HOLD_MINUTES=10
+REMINDER_CRON=*/15 * * * *
+EMAIL_RETRY_CRON=*/5 * * * *
+```
+
+Run Prisma:
+
+```bash
+npx prisma migrate dev
+```
+
+Seed the initial admin:
+
+```bash
+npm run seed
+```
+
+Start the backend:
+
+```bash
+npm run dev
+```
+
+Local backend:
+
+```text
+http://localhost:4000
+```
+
+Health check:
+
+```text
+http://localhost:4000/api/health
 ```
 
 ### 3. Frontend
 
 ```bash
 cd frontend
-cp .env.example .env       # VITE_API_URL=http://localhost:4000/api
 npm install
-npm run dev                 # http://localhost:5173
 ```
 
-### 4. Log in
+Create `frontend/.env`:
 
-- **Admin:** `admin@clinic.dev` / `ChangeMe123!` (seeded — change the password via the DB/console; there's no self-service admin password reset in this MVP)
-- **Doctor:** create one from the Admin → Doctors screen (or `POST /api/admin/doctors`)
-- **Patient:** register from the app's Sign up page
+```env
+VITE_API_URL=http://localhost:4000/api
+```
 
-### 5. Demo data (optional)
-
-For a ready-to-click demo without manually creating accounts:
+Start the frontend:
 
 ```bash
-cd backend
-npm run seed:demo
+npm run dev
 ```
 
-Creates 3 doctors (General Medicine, Dermatology, Cardiology — each with different working
-hours) and one demo patient, all with password `Demo1234!`:
+Local frontend:
 
-| Role | Email |
-|---|---|
-| Doctor | priya.nair@clinic.dev (Mon–Fri mornings) |
-| Doctor | arjun.mehta@clinic.dev (Mon/Wed/Fri afternoons) |
-| Doctor | leah.thomas@clinic.dev (Tue/Thu) |
-| Patient | demo.patient@clinic.dev |
-
-### 6. Postman collection
-
-`postman_collection.json` at the project root covers every endpoint, with test scripts that
-auto-capture tokens and IDs into collection variables so you can run requests top-to-bottom
-(login as admin → create doctor → login as patient → hold slot → submit symptoms → confirm →
-login as doctor → submit visit note) without copy-pasting values by hand. Import it into
-Postman and set `baseUrl` if your API isn't on `localhost:4000`.
-
-## Getting a free Gemini API key
-
-1. Go to https://aistudio.google.com/apikey
-2. Create a key (no billing required on the free tier)
-3. Put it in `backend/.env` as `GEMINI_API_KEY`
-
-Free tier covers this project comfortably (1,500 requests/day on Flash). If `GEMINI_API_KEY`
-is missing or a request fails, the app **does not break** — see "LLM failure handling" below.
-
-## Google Calendar setup (OAuth 2.0)
-
-1. In [Google Cloud Console](https://console.cloud.google.com/), create a project and enable the **Google Calendar API**.
-2. Under **APIs & Services → Credentials**, create an **OAuth client ID** (type: Web application).
-3. Add an authorized redirect URI matching `GOOGLE_REDIRECT_URI` in `.env`, e.g. `http://localhost:4000/api/calendar/oauth/callback`.
-4. Copy the client ID/secret into `backend/.env`.
-5. Each user (patient or doctor) connects their own calendar from the app by calling `GET /api/calendar/connect`, visiting the returned URL, and granting access. Google redirects back to the callback route, which stores their refresh token.
-6. Calendar sync is **best-effort**: a user who hasn't connected simply doesn't get an event created — booking still succeeds.
-
-## LLM prompts (as used in `backend/src/utils/llm.js`)
-
-**Pre-visit summary** (patient symptoms → doctor prep):
+```text
+http://localhost:5173
 ```
+
+---
+
+## 🤖 Gemini Setup
+
+Create a Gemini API key using Google AI Studio:
+
+https://aistudio.google.com/apikey
+
+Set:
+
+```env
+GEMINI_API_KEY=your_key
+GEMINI_MODEL=gemini-3.6-flash
+```
+
+The application uses the `@google/genai` SDK.
+
+### LLM Failure Handling
+
+The LLM helper catches failures and returns a structured result instead of throwing.
+
+```text
+{
+  ok,
+  data,
+  raw,
+  error
+}
+```
+
+If Gemini is unavailable:
+
+- Appointment booking still completes
+- Visit-note submission still completes
+- The database records `llmStatus = FAILED`
+- The UI falls back to raw symptoms or clinical notes
+
+---
+
+## 🧠 LLM Prompts
+
+### Pre-visit Summary
+
+```text
 Analyse these symptoms and return a JSON object with EXACTLY these keys:
-{ "urgency": "Low"|"Medium"|"High", "chiefComplaint": string, "suggestedQuestions": [string, string, string] }
+
+{
+  "urgency": "Low" | "Medium" | "High",
+  "chiefComplaint": string,
+  "suggestedQuestions": [string, string, string]
+}
+
 Respond with ONLY the JSON object.
+
 Symptoms: <symptoms>
 ```
 
-**Post-visit summary** (clinical notes → patient-friendly):
-```
-Convert these clinical notes into a patient-friendly summary. Return a JSON object with EXACTLY these keys:
-{ "summary": string, "medicationSchedule": string, "followUpSteps": string }
+### Post-visit Summary
+
+```text
+Convert these clinical notes into a patient-friendly summary.
+
+Return a JSON object with EXACTLY these keys:
+
+{
+  "summary": string,
+  "medicationSchedule": string,
+  "followUpSteps": string
+}
+
 Respond with ONLY the JSON object.
+
 Clinical notes: <notes>
 ```
 
-Both are requested as strict JSON (`responseMimeType: application/json`) so the backend can
-parse and store structured fields instead of free text.
+The backend requests structured JSON output so the result can be parsed and stored reliably.
 
-### LLM failure handling
+---
 
-`callLLMJson()` never throws — it always resolves to `{ ok, data, raw, error }`. On failure,
-the appointment/visit-note is still created; the record is stored with `llmStatus: "FAILED"`
-and the raw error, and the doctor/patient sees a plain-text fallback (raw symptoms / raw
-clinical notes) instead of a summary. Nothing in the booking or visit-note flow depends on
-the LLM call succeeding.
+## 🗄️ Database Schema
 
-## Database schema (see `backend/prisma/schema.prisma` for the full source)
+The full schema is in:
 
-`User` (role: PATIENT/DOCTOR/ADMIN) → `DoctorProfile` (1:1 for doctors) → `WorkingHours` (recurring
-weekly availability) + `DoctorLeave` (specific dates) → `Appointment` (unique on
-`[doctorId, startTime]`, statuses HELD/CONFIRMED/CANCELLED/COMPLETED/DOCTOR_LEAVE) →
-`SymptomForm` (1:1, pre-visit) and `PostVisitNote` (1:1, post-visit, holds prescription JSON) →
-`MedicationReminder` (many per note) → `Notification` (outbox for all emails).
+```text
+backend/prisma/schema.prisma
+```
 
-## API overview
+Main models:
 
-| Method | Path | Who | Purpose |
+```text
+User
+DoctorProfile
+WorkingHours
+DoctorLeave
+Appointment
+SymptomForm
+PostVisitNote
+MedicationReminder
+Notification
+```
+
+Key relationship flow:
+
+```text
+User
+ ├── DoctorProfile
+ ├── Appointments
+ └── Notifications
+
+DoctorProfile
+ ├── WorkingHours
+ ├── DoctorLeave
+ └── Appointments
+
+Appointment
+ ├── SymptomForm
+ └── PostVisitNote
+
+PostVisitNote
+ └── MedicationReminder
+```
+
+Double-booking protection:
+
+```prisma
+@@unique([doctorId, startTime])
+```
+
+---
+
+## 📡 API Overview
+
+| Method | Endpoint | Role | Purpose |
 |---|---|---|---|
-| POST | `/api/auth/register` | anyone | patient self-registration |
-| POST | `/api/auth/login` | anyone | login, all roles |
-| POST | `/api/admin/doctors` | admin | create doctor + working hours |
-| POST | `/api/admin/doctors/:id/leave` | admin | mark a leave day; cancels & notifies affected patients |
-| GET | `/api/doctors?specialisation=` | authenticated | search doctors |
-| GET | `/api/doctors/:id/availability?date=` | authenticated | computed open slots |
-| POST | `/api/appointments/hold` | patient | step 1: reserve a slot (with hold expiry) |
-| POST | `/api/appointments/:id/confirm` | patient | step 2: confirm after symptom form; sends email + calendar |
-| POST | `/api/appointments/:id/cancel` | patient/doctor/admin | cancel; sends email, deletes calendar events |
-| GET | `/api/appointments` | authenticated | list mine (role-scoped) |
-| POST | `/api/symptoms/:appointmentId` | patient | submit symptoms → pre-visit LLM summary |
-| POST | `/api/visits/:appointmentId` | doctor | submit notes/prescription → post-visit LLM summary + reminders |
-| GET | `/api/calendar/connect` | authenticated | returns Google consent URL |
-| GET | `/api/calendar/oauth/callback` | (Google redirect) | stores refresh token |
+| POST | `/api/auth/register` | Anyone | Patient registration |
+| POST | `/api/auth/login` | Anyone | Login |
+| POST | `/api/admin/doctors` | Admin | Create doctor |
+| POST | `/api/admin/doctors/:id/leave` | Admin | Mark doctor leave |
+| GET | `/api/doctors` | Authenticated | Search doctors |
+| GET | `/api/doctors/:id/availability` | Authenticated | Get available slots |
+| POST | `/api/appointments/hold` | Patient | Hold a slot |
+| POST | `/api/appointments/:id/confirm` | Patient | Confirm booking |
+| POST | `/api/appointments/:id/cancel` | Patient/Doctor/Admin | Cancel appointment |
+| GET | `/api/appointments` | Authenticated | List appointments |
+| POST | `/api/symptoms/:appointmentId` | Patient | Submit symptoms |
+| POST | `/api/visits/:appointmentId` | Doctor | Submit visit note |
+| GET | `/api/calendar/connect` | Authenticated | Start Google Calendar OAuth |
+| GET | `/api/calendar/oauth/callback` | Google | OAuth callback |
+| GET | `/api/health` | Public | Backend health check |
 
-## Deployment
+---
 
-- **Backend:** Render/Railway (Node service) + managed Postgres (Render/Neon/Supabase free tier).
-  Set all `.env` vars in the host's dashboard, run `npx prisma migrate deploy` on release.
-- **Frontend:** Vercel/Netlify/Render static site. Set `VITE_API_URL` to the deployed backend URL.
-- Remember to add the deployed backend's callback URL to the Google OAuth client's authorized redirect URIs, and to your CORS `CLIENT_URL`.
+## ⏰ Background Jobs
+
+### Medication Reminder Job
+
+Finds due, unsent medication reminders and creates notification-outbox entries.
+
+Default schedule:
+
+```env
+REMINDER_CRON=*/15 * * * *
+```
+
+### Email Retry Job
+
+Processes pending and failed notification deliveries.
+
+Default schedule:
+
+```env
+EMAIL_RETRY_CRON=*/5 * * * *
+```
+
+This keeps slow or failed email delivery from blocking the main booking and visit transactions.
+
+---
+
+## 📅 Google Calendar Setup
+
+1. Open Google Cloud Console:
+   https://console.cloud.google.com/
+2. Enable **Google Calendar API**.
+3. Create an OAuth 2.0 **Web application** client.
+4. Add the local redirect URI if developing locally:
+
+```text
+http://localhost:4000/api/calendar/oauth/callback
+```
+
+5. Add the production redirect URI:
+
+```text
+https://healthcare-appointment-manager-olad.onrender.com/api/calendar/oauth/callback
+```
+
+6. Configure the matching variables in the backend:
+
+```env
+GOOGLE_CLIENT_ID=...
+GOOGLE_CLIENT_SECRET=...
+GOOGLE_REDIRECT_URI=...
+```
+
+7. Add the Google account used for testing as a test user if the OAuth app is in Testing mode.
+8. Users connect their own calendar from the application **Settings** page.
+
+Calendar synchronization is best-effort. A booking should not fail just because calendar synchronization fails.
+
+---
+
+## 📬 Notifications
+
+The application uses a notification outbox so email/calendar side effects do not control the success of core database transactions.
+
+Notification statuses:
+
+```text
+PENDING
+SENT
+FAILED
+```
+
+Supported notification types include:
+
+```text
+BOOKING_CONFIRMATION
+APPOINTMENT_REMINDER
+CANCELLATION
+LEAVE_NOTICE
+MEDICATION_REMINDER
+```
+
+---
+
+## 📦 Postman
+
+The repository includes:
+
+```text
+postman_collection.json
+```
+
+The collection covers the main API workflow:
+
+```text
+Admin login
+→ Create doctor
+→ Patient login
+→ Hold slot
+→ Submit symptoms
+→ Confirm appointment
+→ Doctor login
+→ Submit visit note
+```
+
+Set `baseUrl` to the deployed API or your local API before running the collection.
+
+---
+
+## 🚀 Deployment
+
+### Frontend — Vercel
+
+Live URL:
+
+https://healthcare-appointment-manager-sandy.vercel.app
+
+Environment variable:
+
+```env
+VITE_API_URL=https://healthcare-appointment-manager-olad.onrender.com/api
+```
+
+### Backend — Render
+
+Live URL:
+
+https://healthcare-appointment-manager-olad.onrender.com
+
+Health check:
+
+https://healthcare-appointment-manager-olad.onrender.com/api/health
+
+Production environment variables are configured in Render and are not committed to Git.
+
+### Database — Neon
+
+The production backend uses PostgreSQL hosted on Neon.
+
+---
+
+## 📄 System Design
+
+See `SYSTEM_DESIGN.md` for:
+
+- Double-booking prevention
+- Appointment hold mechanism
+- Database transaction strategy
+- Doctor leave conflict handling
+- Notification outbox and retry handling
+- LLM failure handling
+- Google Calendar failure handling
+- Background jobs
+
+---
+
+## 🔗 Useful Links
+
+| Resource | Link |
+|---|---|
+| Live Application | https://healthcare-appointment-manager-sandy.vercel.app |
+| Backend API | https://healthcare-appointment-manager-olad.onrender.com |
+| Backend Health | https://healthcare-appointment-manager-olad.onrender.com/api/health |
+| GitHub Repository | https://github.com/Aarya0706/healthcare-appointment-manager |
+| Gemini API Key | https://aistudio.google.com/apikey |
+| Google Cloud Console | https://console.cloud.google.com/ |
