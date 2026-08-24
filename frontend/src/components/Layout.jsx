@@ -5,12 +5,15 @@ const NAV = {
   PATIENT: [
     { to: '/patient', label: 'Book appointment', end: true },
     { to: '/patient/appointments', label: 'My appointments' },
+    { to: '/settings', label: 'Settings' },
   ],
   DOCTOR: [
     { to: '/doctor', label: 'My schedule', end: true },
+    { to: '/settings', label: 'Settings' },
   ],
   ADMIN: [
     { to: '/admin', label: 'Doctors', end: true },
+    { to: '/settings', label: 'Settings' },
   ],
 };
 
@@ -23,6 +26,7 @@ export default function Layout({ children }) {
     <div className="app-shell">
       <aside className="sidebar">
         <div className="brand">Clinic Appointments</div>
+
         <nav>
           {items.map((item) => (
             <NavLink key={item.to} to={item.to} end={item.end}>
@@ -30,9 +34,11 @@ export default function Layout({ children }) {
             </NavLink>
           ))}
         </nav>
+
         <div className="muted" style={{ marginTop: 24, color: '#cfe6e4' }}>
           {auth?.user?.name} · {auth?.user?.role}
         </div>
+
         <button
           className="signout"
           onClick={() => {
@@ -43,6 +49,7 @@ export default function Layout({ children }) {
           Sign out
         </button>
       </aside>
+
       <main className="main">{children}</main>
     </div>
   );
