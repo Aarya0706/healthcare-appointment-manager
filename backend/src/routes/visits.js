@@ -62,6 +62,9 @@ router.post('/:appointmentId', requireRole('DOCTOR'), async (req, res) => {
         llmError: llm.error,
       },
     });
+    await tx.medicationReminder.deleteMany({
+      where: { postVisitNoteId: created.id },
+    });
 
     await tx.appointment.update({ where: { id: appt.id }, data: { status: 'COMPLETED' } });
 
