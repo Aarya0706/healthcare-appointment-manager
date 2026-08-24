@@ -98,6 +98,12 @@ export const api = {
       token,
     }),
 
+  adminUnmarkLeave: (token, doctorProfileId, leaveId) =>
+    request(`/admin/doctors/${doctorProfileId}/leave/${leaveId}`, {
+      method: 'DELETE',
+      token,
+    }),
+
   // Google Calendar
   connectCalendar: (token) =>
     request('/calendar/connect', {

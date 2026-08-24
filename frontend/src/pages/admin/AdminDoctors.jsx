@@ -53,6 +53,11 @@ export default function AdminDoctors() {
     refresh();
   }
 
+  async function unmarkLeave(doctorProfileId, leaveId) {
+    await api.adminUnmarkLeave(auth.token, doctorProfileId, leaveId);
+    refresh();
+  }
+
   return (
     <div>
       <h2>Doctors</h2>
@@ -95,6 +100,16 @@ export default function AdminDoctors() {
             <input type="date" onChange={(e) => setLeaveDate((s) => ({ ...s, [d.id]: e.target.value }))} />
             <button className="btn secondary" onClick={() => markLeave(d.id)}>Mark on leave</button>
           </div>
+          {d.leaves.length > 0 && (
+            <ul style={{ marginTop: 8, paddingLeft: 18 }}>
+              {d.leaves.map((l) => (
+                <li key={l.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  {new Date(l.date).toLocaleDateString()}
+                  <button className="btn secondary" onClick={() => unmarkLeave(d.id, l.id)}>Unmark</button>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       ))}
     </div>

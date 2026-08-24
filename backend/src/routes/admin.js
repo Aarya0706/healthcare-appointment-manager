@@ -126,4 +126,22 @@ router.get('/doctors/:doctorProfileId/leave', async (req, res) => {
   res.json(leaves);
 });
 
+// --- Unmark a leave day ---
+// Only removes the DoctorLeave record. Appointments that were cancelled
+// when the leave was marked stay CANCELLED/DOCTOR_LEAVE — we don't
+// silently re-confirm them, since that would re-book patients without
+// their say. The admin/patient can re-book normally once the slot is
+// open again.
+router.delete('/doctors/:doctorProfileId/leave/:leaveId', async (req, res) => {
+  const { doctorProfileId, leaveId } = req.params;
+
+  const leave = await prisma.doctorLeave.findUnique({ where: { id: leaveId } });
+  if (!leave || leave.doctorId !== doctorProfileId) {
+    return res.status(404).json({ error: 'Leave record not found' });
+  }
+
+  await prisma.doctorLeave.delete({ where: { id: leaveId } });
+  res.json({ ok: true });
+});
+
 module.exports = router;
