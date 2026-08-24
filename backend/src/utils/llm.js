@@ -1,10 +1,10 @@
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { GoogleGenAI } = require('@google/genai');
 
-const genAI = process.env.GEMINI_API_KEY
-  ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
+const ai = process.env.GEMINI_API_KEY
+  ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
   : null;
 
-const MODEL_NAME = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+const MODEL_NAME = process.env.GEMINI_MODEL || 'gemini-3.5-flash';
 
 /**
  * Calls Gemini and asks for STRICT JSON back. Never throws — callers get
@@ -13,21 +13,26 @@ const MODEL_NAME = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
  * handled gracefully, system should not break").
  */
 async function callLLMJson(prompt, { timeoutMs = 15000 } = {}) {
-  if (!genAI) {
+  if (!ai) {
     return { ok: false, data: null, raw: null, error: 'GEMINI_API_KEY not configured' };
   }
 
   try {
-    const model = genAI.getGenerativeModel({
-      model: MODEL_NAME,
-      generationConfig: { responseMimeType: 'application/json' },
-    });
+    const result = await withTimeout(
+      ai.models.generateContent({
+        model: MODEL_NAME,
+        contents: prompt,
+        config: { responseMimeType: 'application/json' },
+      }),
+      timeoutMs
+    );
 
-    const result = await withTimeout(model.generateContent(prompt), timeoutMs);
-    const text = result.response.text();
+    const text = result.text;
     const data = JSON.parse(text);
     return { ok: true, data, raw: text, error: null };
   } catch (err) {
+    // IMPORTANT: log this — this line is why you've had no idea what's failing
+    console.error('[llm] callLLMJson failed:', err.message || err);
     return { ok: false, data: null, raw: null, error: err.message || String(err) };
   }
 }
@@ -39,7 +44,7 @@ function withTimeout(promise, ms) {
   ]);
 }
 
-// --- Prompt builders (from the assignment's "LLM Usage Guidance") ---
+// --- Prompt builders (unchanged) ---
 
 function buildPreVisitPrompt(symptoms) {
   return `Analyse these symptoms and return a JSON object with EXACTLY these keys:
@@ -56,9 +61,9 @@ Symptoms: ${symptoms}`;
 function buildPostVisitPrompt(clinicalNotes) {
   return `Convert these clinical notes into a patient-friendly summary. Return a JSON object with EXACTLY these keys:
 {
-  "summary": string,          // plain-language explanation of the visit and diagnosis
-  "medicationSchedule": string, // human-readable schedule, e.g. "Amoxicillin 500mg — twice a day after food, for 5 days"
-  "followUpSteps": string     // what the patient should do next / when to come back
+  "summary": string,
+  "medicationSchedule": string,
+  "followUpSteps": string
 }
 Respond with ONLY the JSON object, no markdown fences, no extra text.
 
