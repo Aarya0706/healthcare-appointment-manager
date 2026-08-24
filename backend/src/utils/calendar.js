@@ -11,12 +11,20 @@ function oauthClient() {
 
 function getAuthUrl(state) {
   const client = oauthClient();
-  return client.generateAuthUrl({
-    access_type: 'offline', // needed to get a refresh_token
+
+  console.log('[google-oauth] CLIENT_ID:', process.env.GOOGLE_CLIENT_ID);
+  console.log('[google-oauth] REDIRECT_URI:', process.env.GOOGLE_REDIRECT_URI);
+
+  const url = client.generateAuthUrl({
+    access_type: 'offline',
     prompt: 'consent',
     scope: ['https://www.googleapis.com/auth/calendar.events'],
-    state, // pass the userId through so the callback knows who's connecting
+    state,
   });
+
+  console.log('[google-oauth] AUTH_URL:', url);
+
+  return url;
 }
 
 async function exchangeCodeForTokens(code) {
